@@ -10,8 +10,8 @@ set \
 : ${ASDF_INSTALL_VERSION?}
 : ${ASDF_INSTALL_PATH?}
 
-readonly repository="etcd-io/etcd"
-readonly toolname="etcdctl"
+readonly repository="kubernetes/kubernetes"
+readonly toolname="kubeadm"
 
 # make a temporary download directory with a cleanup hook
 readonly TMP_DOWNLOAD_DIR="$(mktemp -d -t "asdf_${toolname}_XXXXXX")"
@@ -37,11 +37,7 @@ install() {
         extracted=
         if [[ $download_path == *.tar.gz ]]; then
             echo "Extracting ${toolname} tar archive"
-            tar xvf "${download_path}" --strip-components=1 -C "$bin_install_path" "$(basename -s .tar.gz "$download_path")/$toolname" 2> /dev/null
-            [ $? -eq 0 ] && extracted=true
-        elif [[ $download_path == *.zip ]]; then
-            echo "Extracting ${toolname} zip archive"
-            unzip -jd "$bin_install_path" "${download_path}" "$(basename -s .zip "$download_path")/$toolname" 2> /dev/null
+            tar xvf "${download_path}" --strip-components=1 -C "$bin_install_path" "$(basename -s .tar.gz "$download_path")/server/bin/$toolname" 2> /dev/null
             [ $? -eq 0 ] && extracted=true
         fi
         if [ -z $extracted ]; then
@@ -54,25 +50,25 @@ install() {
     fi
 }
 
-get_arch() {
+get_platform() {
     uname | tr '[:upper:]' '[:lower:]'
+}
+
+get_arch() {
+    arch="$(uname -m)"
+    if [[ $arch == *64 ]]; then
+        arch="amd64"
+    elif [[ $arch == *86* ]]; then
+        arch="386"
+    fi
+    echo "$arch"
 }
 
 get_download_url() {
     local -r version="$1"
+    local -r platform="$(get_platform)"
     local -r arch="$(get_arch)"
-    # we have to do this because some downloads are .tar.gz and some are .zip files
-    cmd="curl -s"
-    if [ -n "${OAUTH_TOKEN:-}" ]; then
-        cmd="$cmd -H 'Authorization: token $OAUTH_TOKEN'"
-    fi
-    cmd="$cmd https://api.github.com/repos/$repository/releases"
-    local -r url=$(eval $cmd |\
-                   jq -r \
-                   --arg version "$version" \
-                   --arg arch "$arch" \
-                   '.[] | select(.tag_name==$version).assets[] | select((.name | contains($arch + "-amd64")) and ((.browser_download_url | endswith(".tar.gz")) or (.browser_download_url | endswith(".zip")))).browser_download_url')
-    echo $url
+    echo "https://dl.k8s.io/${version}/kubernetes-server-${platform}-${arch}.tar.gz"
 }
 
 install "${ASDF_INSTALL_TYPE}" "${ASDF_INSTALL_VERSION}" "${ASDF_INSTALL_PATH}"

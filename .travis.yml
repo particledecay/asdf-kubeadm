@@ -1,21 +1,6 @@
 language: c
-addons:
-  apt:
-    packages:
-      - jq
-  homebrew:
-    packages:
-      - jq
-    update: true
 
-before_cache:
-  - if [ "${TRAVIS_OS_NAME}" = "osx" ]; then brew cleanup; fi
-cache:
-  directories:
-    - $HOME/Library/Caches/Homebrew
-    - /usr/local/Homebrew
-
-script: asdf plugin-test etcd $TRAVIS_BUILD_DIR 'etcdctl version' --asdf-tool-version v3.4.0
+script: asdf plugin-test kubeadm $TRAVIS_BUILD_DIR 'kubeadm version'
 before_script:
   - git clone https://github.com/asdf-vm/asdf.git asdf
   - . asdf/asdf.sh
